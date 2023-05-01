@@ -1,0 +1,22 @@
+{
+  "name": "symbol-provider-tree-sitter",
+  "main": "./lib/main",
+  "version": "0.0.1",
+  "description": "Provides symbols to symbols-view based on tree-sitter queries",
+  "repository": "https://github.com/atom/symbol-provider-tree-sitter",
+  "license": "MIT",
+  "engines": {
+    "atom": ">=1.0.0 <2.0.0",
+    "node": ">=14"
+  },
+  "providedServices": {
+    "symbol.provider": {
+      "description": "Allows external sources to suggest symbols for a given file or project.",
+      "versions": {
+        "1.0.0": "provideSymbols"
+      }
+    }
+  },
+  "dependencies": {
+  }
+}
