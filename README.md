@@ -35,7 +35,7 @@ The `symbol.prepend` predicate adds a string to the beginning of a symbol name. 
 ```scm
 (class_declaration
   name: (identifier) @name
-  (#set! symbol.append " (class)")))
+  (#set! symbol.append " (class)"))
 ```
 
 The `symbol.append` predicate adds a string to the end of a symbol name. For a class `Foo`, this predicate would result in a symbol called `Foo (class)`.
