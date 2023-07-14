@@ -24,6 +24,8 @@ To match the current behavior of the `symbols-view` package, you can usually tak
 
 The text of the captured node is what will be displayed as the symbol, but a few predicates are available to alter that text.
 
+##### symbol.prepend
+
 ```scm
 (class_declaration
   name: (identifier) @name
@@ -31,6 +33,8 @@ The text of the captured node is what will be displayed as the symbol, but a few
 ```
 
 The `symbol.prepend` predicate adds a string to the beginning of a symbol name. For a class `Foo` in JavaScript, this predicate would result in a symbol called `Class: Foo`.
+
+##### symbol.append
 
 ```scm
 (class_declaration
@@ -41,6 +45,8 @@ The `symbol.prepend` predicate adds a string to the beginning of a symbol name. 
 The `symbol.append` predicate adds a string to the end of a symbol name. For a class `Foo`, this predicate would result in a symbol called `Foo (class)`.
 
 
+##### symbol.strip
+
 ```scm
 (class_declaration
   name: (identifier) @name
@@ -50,3 +56,33 @@ The `symbol.append` predicate adds a string to the end of a symbol name. For a c
 The `symbol.strip` predicate will replace everything matched by the regular expression with an empty string. The pattern given is compiled into a JavaScript `RegExp` with an implied `g` (global) flag.
 
 In this example, _if_ the `identifier` node included whitespace on either side of the symbol, this would be one way to remove that.
+
+##### symbol.prependTextForNode
+
+```scm
+(class_body (method_definition
+  name: (property_identifier) @name
+  (#set! symbol.prependTextForNode "parent.parent.previousNamedSibling")
+  (#set! symbol.joiner "#")
+))
+```
+
+The `symbol.prependTextForNode` predicate will look up the text of the node referred to by the provided _node position descriptor_, then prepend that text to the symbol name. If `symbol.joiner` is provided, it will be inserted in between the two.
+
+In this example, a `bar` method on a class named `Foo` would have a symbol name of `Foo#bar`.
+
+##### symbol.prependSymbolForNode
+
+```scm
+(class_body (method_definition
+  name: (property_identifier) @name
+  (#set! symbol.prependSymbolForNode "parent.parent.previousNamedSibling")
+  (#set! symbol.joiner "#")
+))
+```
+
+The `symbol.prependSymbolForNode` predicate will look up the symbol name of the node referred to by the provided _node position descriptor_, then prepend that name to the symbol name. If `symbol.joiner` is provided, it will be inserted in between the two.
+
+Unlike `symbol.prependTextForNode`, the node referred to with the descriptor must have its own symbol name, and it must have been processed already — that is, it must be a symbol whose name was determined earlier than that of the current node.
+
+This allows us to incorporate any transformations that were applied to the other node’s symbol name. We can use this to build “recursive” symbol names — for instance, JSON keys whose symbols consist of their entire key path from the root.
