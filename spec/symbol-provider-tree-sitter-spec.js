@@ -17,25 +17,6 @@ async function wait (ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-async function getProjectSymbols (provider, editor) {
-  let symbols = await provider.getSymbols({
-    type: 'project',
-    editor,
-    paths: atom.project.getPaths()
-  });
-  return symbols;
-}
-
-async function findDeclarationInProject (provider, editor) {
-  let symbols = await provider.getSymbols({
-    type: 'project-find',
-    editor,
-    paths: atom.project.getPaths(),
-    word: editor.getWordUnderCursor()
-  });
-  return symbols;
-}
-
 let provider;
 
 async function getSymbols (editor, type = 'file') {
@@ -72,6 +53,11 @@ describe('TreeSitterProvider', () => {
       path.join(__dirname, 'fixtures', 'js'),
       atom.project.getPaths()[1]
     );
+
+    fs.copySync(
+      path.join(__dirname, 'fixtures', 'ruby'),
+      atom.project.getPaths()[1]
+    );
   });
 
   describe('when a tree-sitter grammar is used for a file', () => {
@@ -80,6 +66,16 @@ describe('TreeSitterProvider', () => {
       editor = getEditor();
       let languageMode = editor.getBuffer().getLanguageMode();
       await languageMode.ready;
+    });
+
+    it('is willing to provide symbols for the current file', () => {
+      let meta = { type: 'file', editor };
+      expect(provider.canProvideSymbols(meta)).toBe(true);
+    });
+
+    it('is not willing to provide symbols for an entire project', () => {
+      let meta = { type: 'project', editor };
+      expect(provider.canProvideSymbols(meta)).toBe(false);
     });
 
     it('provides all JavaScript functions', async () => {
@@ -92,6 +88,24 @@ describe('TreeSitterProvider', () => {
       expect(symbols[1].position.row).toEqual(1);
     });
   });
+
+  describe('when a non-tree-sitter grammar is used for a file', () => {
+    beforeEach(async () => {
+      atom.config.set('core.useTreeSitterParsers', false);
+      atom.config.set('core.useExperimentalModernTreeSitter', false);
+      await atom.workspace.open(directory.resolve('sample.js'));
+      editor = getEditor();
+    });
+
+    it('is not willing to provide symbols for the current file', () => {
+      expect(editor.getGrammar().rootLanguageLayer).toBe(undefined);
+      let meta = { type: 'file', editor };
+      expect(provider.canProvideSymbols(meta)).toBe(false);
+    });
+  });
+
+  // TODO: Test that `canProvideSymbols` returns `false` when no layer has a
+  // tags query.
 
   describe('when the buffer is new and unsaved', () => {
     let grammar;
@@ -126,6 +140,25 @@ describe('TreeSitterProvider', () => {
         expect(symbols[1].name).toBe('sort');
         expect(symbols[1].position.row).toEqual(1);
       });
+    });
+  });
+
+  describe('when the file has multiple language layers', () => {
+    beforeEach(async () => {
+      await atom.packages.activatePackage('language-ruby');
+      await atom.workspace.open(directory.resolve('embed.rb'));
+      editor = getEditor();
+      await editor.getBuffer().getLanguageMode().ready;
+    });
+
+    it('detects symbols across several layers', async () => {
+      let symbols = await getSymbols(editor, 'file');
+
+      expect(symbols[0].name).toBe('foo');
+      expect(symbols[0].position.row).toEqual(1);
+
+      expect(symbols[1].name).toBe('bar');
+      expect(symbols[1].position.row).toEqual(4);
     });
   });
 
