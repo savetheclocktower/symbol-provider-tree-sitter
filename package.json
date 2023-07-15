@@ -3,7 +3,7 @@
   "main": "./lib/main",
   "version": "0.0.1",
   "description": "Provides symbols to symbols-view based on tree-sitter queries",
-  "repository": "https://github.com/atom/symbol-provider-tree-sitter",
+  "repository": "https://github.com/savetheclocktower/symbol-provider-tree-sitter",
   "license": "MIT",
   "engines": {
     "atom": ">=1.0.0 <2.0.0",
