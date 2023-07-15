@@ -2,7 +2,7 @@
 
 A symbol provider for tree-sitter grammars.
 
-Used with the [symbols-view-plus package](https://github.com/savetheclocktower/symbols-view-plus), which will eventually be folded into [Pulsar’s existing symbols-view package](https://github.com/pulsar-edit/symbols-view).
+Used with the [symbols-view-redux package](https://web.pulsar-edit.dev/packages/symbols-view-redux), which will eventually be folded into [Pulsar’s existing symbols-view package](https://github.com/pulsar-edit/symbols-view).
 
 Tree-sitter grammars [with tags queries](https://tree-sitter.github.io/tree-sitter/code-navigation-systems) can very easily give us a list of all the symbols in a file without the drawbacks of a `ctags`-based approach. For instance, they operate on the contents of the buffer, not the contents of the file on disk, so they work just fine in brand-new files and in files that have been modified since the last save.
 
