@@ -41,6 +41,8 @@ describe('TreeSitterProvider', () => {
     atom.config.set('core.useExperimentalModernTreeSitter', true);
     await atom.packages.activatePackage('language-javascript');
 
+    atom.config.set('symbol-provider-tree-sitter.includeReferences', false);
+
     provider = new TreeSitterProvider();
 
     atom.project.setPaths([
@@ -162,7 +164,81 @@ describe('TreeSitterProvider', () => {
     });
   });
 
-  describe('when the tags query uses predicate', () => {
+  describe('when the tags query contains @definition captures', () => {
+    let grammar;
+    beforeEach(async () => {
+      await atom.workspace.open(directory.resolve('sample.js'));
+      editor = getEditor();
+      let languageMode = editor.getBuffer().getLanguageMode();
+      await languageMode.ready;
+      grammar = editor.getGrammar();
+      await grammar.setQueryForTest(
+        'tagsQuery',
+        scm`
+        (
+          (variable_declaration
+            (variable_declarator
+              name: (identifier) @name
+              value: [(arrow_function) (function)]))
+        ) @definition.function
+        `
+      );
+    });
+
+    it('can infer tag names from those captures', async () => {
+      let symbols = await getSymbols(editor, 'file');
+
+      expect(symbols[0].name).toBe('quicksort');
+      expect(symbols[0].tag).toBe('function');
+
+      expect(symbols[1].name).toBe('sort');
+      expect(symbols[1].tag).toBe('function');
+    });
+  });
+
+  describe('when the tags query contains @reference captures', () => {
+    let grammar;
+    beforeEach(async () => {
+      await atom.workspace.open(directory.resolve('sample.js'));
+      editor = getEditor();
+      let languageMode = editor.getBuffer().getLanguageMode();
+      await languageMode.ready;
+      grammar = editor.getGrammar();
+      await grammar.setQueryForTest(
+        'tagsQuery',
+        scm`
+        (
+          (variable_declaration
+            (variable_declarator
+              name: (identifier) @name
+              value: [(arrow_function) (function)]))
+        ) @definition.function
+
+        (
+          (call_expression
+            function: (identifier) @name) @reference.call
+            (#not-match? @name "^(require)$"))
+        `
+      );
+    });
+
+    it('skips references when they are disabled in settings', async () => {
+      let symbols = await getSymbols(editor, 'file');
+      expect(symbols.length).toBe(2);
+    });
+
+    it('includes references when they are enabled in settings', async () => {
+      atom.config.set('symbol-provider-tree-sitter.includeReferences', true);
+      let symbols = await getSymbols(editor, 'file');
+      expect(symbols.length).toBe(5);
+      expect(symbols.map(s => s.tag)).toEqual(
+        ['function', 'function', 'call', 'call', 'call']
+      );
+    });
+
+  });
+
+  describe('when the tags query uses the predicate', () => {
     let grammar;
     beforeEach(async () => {
       await atom.workspace.open(directory.resolve('sample.js'));

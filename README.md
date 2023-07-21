@@ -16,15 +16,35 @@ If you’re writing your own grammar, or contributing a `tags.scm` to a grammar 
 
 ### Query syntax
 
-The query syntax starts as a subset of what is described [on this page](https://tree-sitter.github.io/tree-sitter/code-navigation-systems). At present, this package cares only about captures named `@name`, and the `web-tree-sitter` bindings used by Pulsar will silently ignore predicates like `#select-adjacent!`.
+The query syntax starts as a subset of what is described [on this page](https://tree-sitter.github.io/tree-sitter/code-navigation-systems). Here’s what this package can understand:
 
-To match the current behavior of the `symbols-view` package, you can usually take a `queries/tags.scm` file from a Tree-sitter repository — many parsers define them — and paste it straight into your grammar’s `tags.scm` file. Then you’d remove any captures that have to do with _references_, since `symbols-view` doesn’t care about those. The result would be very similar to what the `ctags` provider would give you, but faster and with better accuracy.
+* A query that consists of a `@definition.THING` capture with a `@name` capture inside will properly be understood as a symbol with a tag corresponding to `THING` and a name corresponding to the `@name` capture’s text.
+* A query that consists of a `@reference.THING` capture with a `@name` capture inside will be ignored by default. If the proper setting is enabled, each of these references will become a symbol with a tag corresponding to `THING` and a name corresponding to the `@name` capture’s text.
+* All other `@name` captures that are not within either a `@definition` or a `@reference` will be considered as a symbol in isolation.
+
+To match the current behavior of the `symbols-view` package, you can usually take a `queries/tags.scm` file from a Tree-sitter repository — many parsers define them — and paste it straight into your grammar’s `tags.scm` file. The result would be very similar to what the `ctags` provider would give you, but faster and with better accuracy.
 
 #### Advanced features
 
-The text of the captured node is what will be displayed as the symbol, but a few predicates are available to alter that text.
+The text of the captured node is what will be displayed as the symbol’s name, but a few predicates are available to alter that field and others. Symbol predicates use `#set!` and the `symbol` namespace.
 
-##### symbol.prepend
+##### Node position descriptors
+
+Several predicates take a **node position descriptor** as an argument. It’s a string that resembles an object lookup chain in JavaScript:
+
+```scm
+(#set! symbol.prependTextForNode parent.parent.firstNamedChild)
+```
+
+Starting at the captured node, it describes a path to take within the tree in order to get to another meaningful node.
+
+In all these examples, if the descriptor is invalid and does not return a node, the predicate will be ignored.
+
+##### Changing the symbol’s name
+
+There are several ways to add text to the beginning or end of the symbol’s name:
+
+###### symbol.prepend
 
 ```scm
 (class_declaration
@@ -32,9 +52,9 @@ The text of the captured node is what will be displayed as the symbol, but a few
   (#set! symbol.prepend "Class: "))
 ```
 
-The `symbol.prepend` predicate adds a string to the beginning of a symbol name. For a class `Foo` in JavaScript, this predicate would result in a symbol called `Class: Foo`.
+The `symbol.prepend` predicate adds a constant string to the beginning of a symbol name. For a class `Foo` in JavaScript, this predicate would result in a symbol called `Class: Foo`.
 
-##### symbol.append
+###### symbol.append
 
 ```scm
 (class_declaration
@@ -45,7 +65,7 @@ The `symbol.prepend` predicate adds a string to the beginning of a symbol name. 
 The `symbol.append` predicate adds a string to the end of a symbol name. For a class `Foo`, this predicate would result in a symbol called `Foo (class)`.
 
 
-##### symbol.strip
+###### symbol.strip
 
 ```scm
 (class_declaration
@@ -55,9 +75,9 @@ The `symbol.append` predicate adds a string to the end of a symbol name. For a c
 
 The `symbol.strip` predicate will replace everything matched by the regular expression with an empty string. The pattern given is compiled into a JavaScript `RegExp` with an implied `g` (global) flag.
 
-In this example, _if_ the `identifier` node included whitespace on either side of the symbol, this would be one way to remove that.
+In this example, _if_ the `identifier` node included whitespace on either side of the symbol, the symbol’s name would be stripped of that whitespace before being shown in the UI.
 
-##### symbol.prependTextForNode
+###### symbol.prependTextForNode
 
 ```scm
 (class_body (method_definition
@@ -71,7 +91,7 @@ The `symbol.prependTextForNode` predicate will look up the text of the node refe
 
 In this example, a `bar` method on a class named `Foo` would have a symbol name of `Foo#bar`.
 
-##### symbol.prependSymbolForNode
+###### symbol.prependSymbolForNode
 
 ```scm
 (class_body (method_definition
@@ -86,3 +106,65 @@ The `symbol.prependSymbolForNode` predicate will look up the symbol name of the 
 Unlike `symbol.prependTextForNode`, the node referred to with the descriptor must have its own symbol name, and it must have been processed already — that is, it must be a symbol whose name was determined earlier than that of the current node.
 
 This allows us to incorporate any transformations that were applied to the other node’s symbol name. We can use this to build “recursive” symbol names — for instance, JSON keys whose symbols consist of their entire key path from the root.
+
+##### Adding the `context` field
+
+The `context` field of a symbol is a short piece of text meant to give context. For instance, a symbol that represents a class method could have a `context` field that contains the name of the owning class. The `context` field is not filtered on.
+
+###### symbol.contextNode
+
+```scm
+(class_body (method_definition
+  name: (property_identifier) @name
+  (#set! symbol.contextNode "parent.parent.previousNamedSibling")
+))
+```
+
+The `symbol.contextNode` predicate will set the value of a symbol’s `context` property to the text of a node based on the provided _node position descriptor_.
+
+###### symbol.context
+
+```scm
+(class_body (method_definition
+  name: (property_identifier) @name
+  (#set! symbol.context "class")
+))
+```
+
+The `symbol.context` predicate will set the value of a symbol’s `context` property to a fixed string.
+
+The point of `context` is to provide information to help you tell symbols apart, so you probably don’t want to set it to a fixed value. But this predicate is available just in case.
+
+##### Adding a tag
+
+The `tag` field is a string (ideally a short string) that indicates a symbol’s kind or type. A `tag` for a class method’s symbol might say `method`, whereas the symbol for the class itself might have a `tag` of `class`. These tags will be indicated in the UI with a badge or an icon.
+
+The preferred method of adding a tag is to leverage the `@definition.` captures that are typically present in a tags file. For instance, in this excerpt from the JavaScript grammar’s `tags.scm` file…
+
+```scm
+(assignment_expression
+  left: [
+    (identifier) @name
+    (member_expression
+      property: (property_identifier) @name)
+  ]
+  right: [(arrow_function) (function)]
+) @definition.function
+```
+
+…the resulting symbol will infer a `tag` value of `function`.
+
+In cases where this is impractical, you can provide the tag explicitly with a predicate.
+
+###### symbol.tag
+
+```scm
+(class_body (method_definition
+  name: (property_identifier) @name
+  (#set! symbol.tag "class")
+))
+```
+
+The `symbol.tag` predicate will set the value of a symbol’s `tag` property to a fixed string.
+
+The `tag` property is used to supply a word that represents the symbol in some way. For conventional symbols, this will be something like `class` or `function`.
