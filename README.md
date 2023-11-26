@@ -1,8 +1,6 @@
 # symbol-provider-tree-sitter package
 
-A symbol provider for tree-sitter grammars.
-
-Used with the [symbols-view-redux package](https://web.pulsar-edit.dev/packages/symbols-view-redux), which will eventually be folded into [Pulsar’s existing symbols-view package](https://github.com/pulsar-edit/symbols-view).
+Provides symbols to `symbols-view` via Tree-sitter queries.
 
 Tree-sitter grammars [with tags queries](https://tree-sitter.github.io/tree-sitter/code-navigation-systems) can very easily give us a list of all the symbols in a file without the drawbacks of a `ctags`-based approach. For instance, they operate on the contents of the buffer, not the contents of the file on disk, so they work just fine in brand-new files and in files that have been modified since the last save.
 
@@ -62,7 +60,7 @@ The `symbol.prepend` predicate adds a constant string to the beginning of a symb
   (#set! symbol.append " (class)"))
 ```
 
-The `symbol.append` predicate adds a string to the end of a symbol name. For a class `Foo`, this predicate would result in a symbol called `Foo (class)`.
+The `symbol.append` predicate adds a constant string to the end of a symbol name. For a class `Foo`, this predicate would result in a symbol called `Foo (class)`.
 
 
 ###### symbol.strip
