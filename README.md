@@ -18,9 +18,9 @@ The query syntax starts as a subset of what is described [on this page](https://
 
 * A query that consists of a `@definition.THING` capture with a `@name` capture inside will properly be understood as a symbol with a tag corresponding to `THING` and a name corresponding to the `@name` capture’s text.
 * A query that consists of a `@reference.THING` capture with a `@name` capture inside will be ignored by default. If the proper setting is enabled, each of these references will become a symbol with a tag corresponding to `THING` and a name corresponding to the `@name` capture’s text.
-* All other `@name` captures that are not within either a `@definition` or a `@reference` will be considered as a symbol in isolation.
+* All other `@name` captures that are not within either a `@definition` or a `@reference` will be considered as a symbol in isolation. (These symbols can still specify a tag via a `#set!` predicate.)
 
-To match the current behavior of the `symbols-view` package, you can usually take a `queries/tags.scm` file from a Tree-sitter repository — many parsers define them — and paste it straight into your grammar’s `tags.scm` file. The result would be very similar to what the `ctags` provider would give you, but faster and with better accuracy.
+To match the current behavior of the `symbols-view` package, you can usually take a `queries/tags.scm` file from a Tree-sitter repository — many parsers define them — and paste it straight into your grammar’s `tags.scm` file.
 
 #### Advanced features
 
@@ -165,4 +165,4 @@ In cases where this is impractical, you can provide the tag explicitly with a pr
 
 The `symbol.tag` predicate will set the value of a symbol’s `tag` property to a fixed string.
 
-The `tag` property is used to supply a word that represents the symbol in some way. For conventional symbols, this will be something like `class` or `function`.
+The `tag` property is used to supply a word that represents the symbol in some way. For conventional symbols, this will often be something like `class` or `function`.
