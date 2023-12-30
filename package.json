@@ -1,7 +1,7 @@
 {
   "name": "symbol-provider-tree-sitter",
   "main": "./lib/main",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "Provides symbols to symbols-view based on tree-sitter queries",
   "repository": "https://github.com/savetheclocktower/symbol-provider-tree-sitter",
   "license": "MIT",
